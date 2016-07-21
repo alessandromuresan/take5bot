@@ -1,0 +1,26 @@
+{
+  "name": "take5bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js --harmony",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alessandromuresan/take5bot.git"
+  },
+  "author": "Alessandro Muresan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alessandromuresan/take5bot/issues"
+  },
+  "homepage": "https://github.com/alessandromuresan/take5bot#readme",
+  "dependencies": {
+    "botkit": "^0.2.2",
+    "es6-module-loader": "^0.17.11",
+    "slack": "^7.5.7",
+    "slackbots": "^0.5.1"
+  }
+}
