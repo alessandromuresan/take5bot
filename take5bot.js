@@ -5,7 +5,7 @@ var slack = require('slack');
 
 class Take5Bot {
 
-    constructor(config) {
+    constructor(config, controller) {
 
         if (!config.token) {
             throw new Error('Please provide a token');
@@ -18,6 +18,10 @@ class Take5Bot {
         if (!config.name) {
             config.name = 'take5bot';
         }
+
+        this.shouldFetchUsers = typeof config.fetchUsers !== 'undefined'
+            ? !!config.fetchUsers
+            : true;
 
         this.token = config.token;
         this.name = config.name;
@@ -37,9 +41,11 @@ class Take5Bot {
 
         this.timeoutValue = config.timeoutValue * 60 * 1000;
 
-        this.controller = Botkit.slackbot({
-            debug: 1, // from 1 to 7
-        });
+        this.controller = controller
+            ? controller
+            : Botkit.slackbot({
+                debug: 1 // from 1 to 7
+            });
 
         this.on('tick', this.onTick.bind(this));
         this.on('direct_message', this.onDirectMessage.bind(this));
@@ -68,59 +74,25 @@ class Take5Bot {
 
         var userId = message.user;
 
-        this.userData[userId] = {
+        var userData = {
             bot: bot,
             message: message,
             id: userId,
             user: null
         };
 
-        slack.users.info({ token: this.token, user: userId }, (err, data) => {
+        this.userData[userId] = userData;
 
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-            this.userData[userId].user = data.user;
-        });
+        if (this.shouldFetchUsers) {
+            this.fetchUser(userId);
+        }
 
         if (this.isDisableMessage(message.text)) {
-
-            if (this.enabled[userId]) {
-
-                this.enabled[userId] = false;
-
-                this.enabledUsers.splice(this.enabledUsers.indexOf(userId), 1);
-
-                bot.reply(message, 'Disabled');
-
-            } else {
-
-                if (typeof this.enabled[userId] !== 'undefined') {
-                    bot.reply(message, 'I\'m already disabled');
-                } else {
-                    bot.reply(message, 'You haven\'t enabled me yet');
-                }
-            }
+            this.handleDisableMessage(userData);
         }
 
         if (this.isEnableMessage(message.text)) {
-
-            if (!this.enabled[userId]) {
-
-                this.enabled[userId] = true;
-
-                this.enabledUsers.push(userId);
-
-                this.updateTake5(userId);
-
-                bot.reply(message, 'Enabled');
-
-            } else {
-
-                bot.reply(message, 'I\'m already enabled');
-            }
+            this.handleEnableMessage(userData);
         }
     }
 
@@ -135,6 +107,65 @@ class Take5Bot {
                 this.updateTake5(userId);
             }
         });
+    }
+
+    fetchUser(userId) {
+
+        slack.users.info({ token: this.token, user: userId }, (err, data) => {
+
+            if (err) {
+                console.error(err);
+                return;
+            }
+
+            this.userData[userId].user = data.user;
+        });
+    }
+
+    handleDisableMessage(userData) {
+
+        var userId = userData.id;
+        var message = userData.message;
+        var bot = userData.bot;
+
+        if (this.enabled[userId]) {
+
+            this.enabled[userId] = false;
+
+            this.enabledUsers.splice(this.enabledUsers.indexOf(userId), 1);
+
+            bot.reply(message, 'Disabled');
+
+        } else {
+
+            if (typeof this.enabled[userId] !== 'undefined') {
+                bot.reply(message, 'I\'m already disabled');
+            } else {
+                bot.reply(message, 'You haven\'t enabled me yet');
+            }
+        }
+    }
+
+    handleEnableMessage(userData) {
+
+        var userId = userData.id;
+        var message = userData.message;
+        var bot = userData.bot;
+
+        if (!this.enabled[userId]) {
+
+            this.enabled[userId] = true;
+
+            this.enabledUsers.push(userId);
+
+            this.updateTake5(userId);
+
+            bot.reply(message, 'Enabled');
+
+        } else {
+
+            bot.reply(message, 'I\'m already enabled');
+        }
     }
 
     sendTake5Message(userData) {
